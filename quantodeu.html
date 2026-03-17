@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>QUANTO DEU?</title>
+<style>
+body { font-family: Arial; background: #ffcc00; margin: 0; padding: 20px; }
+.container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
+button { padding: 10px; margin: 5px 0; width: 100%; border: none; border-radius: 8px; cursor: pointer; }
+.btn-main { background: #555; color: white; }
+.btn-edit { background: #ffcc00; color: black; font-weight: bold; }
+.btn-save { background: #4CAF50; color: white; }
+.btn-delete { background: #e74c3c; color: white; }
+.btn-copy { background: #3498db; color: white; }
+input { width: 100%; padding: 8px; margin: 5px 0; }
+.hidden { display: none; }
+.item { border-bottom: 1px solid #ccc; padding: 10px 0; }
+.item-nome { font-size: 18px; font-weight: bold; }
+.item-sub { font-size: 12px; color: #666; }
+.resumo { background: #f5f5f5; padding: 10px; border-radius: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>🍺 QUANTO DEU?</h2>
+
+<div id="tela1">
+<button class="btn-main" onclick="abrirMesa()">Abrir nova mesa</button>
+</div>
+
+<div id="tela2" class="hidden">
+<input id="numPessoas" type="number" placeholder="Número de pessoas">
+<button class="btn-main" onclick="criarPessoas()">Continuar</button>
+</div>
+
+<div id="tela3" class="hidden">
+<div id="listaPessoas"></div>
+<button class="btn-main" onclick="irParaConta()">Ir para conta</button>
+</div>
+
+<div id="tela4" class="hidden">
+<div id="itens"></div>
+<div class="resumo">
+<input id="taxa" placeholder="Taxa serviço %" oninput="renderItens()">
+<div id="previewTotal"></div>
+</div>
+<button class="btn-main" onclick="adicionarItem()">+ Adicionar item</button>
+<button class="btn-main" onclick="finalizarConta()">Finalizar conta</button>
+</div>
+
+<div id="telaAddItem" class="hidden">
+<input id="nomeItem" placeholder="Nome">
+<input id="qtdItem" type="number" placeholder="Quantidade">
+<input id="precoItem" type="number" placeholder="Preço unitário">
+<button class="btn-save" onclick="salvarItem()">Salvar</button>
+<button class="btn-main" onclick="abrirDivisao()">Dividir consumo</button>
+<button id="btnDelete" class="btn-delete hidden" onclick="apagarItemConfirm()">Apagar item</button>
+</div>
+
+<div id="telaDivisao" class="hidden">
+<h3>Divisão do item</h3>
+<div id="divisaoConteudo"></div>
+<button class="btn-main" onclick="addDiv()">+ Adicionar nova divisão</button>
+<button class="btn-save" onclick="salvarDivisao()">Salvar divisão</button>
+</div>
+
+<div id="telaFinal" class="hidden">
+<h3>Resultado</h3>
+<div id="resultado"></div>
+<button class="btn-main" onclick="voltarLista()">VOLTAR PARA EDIÇÃO</button>
+<button class="btn-copy" onclick="copiarTexto()">COPIAR LISTA</button>
+</div>
+
+</div>
+
+</div>
+
+<script>
+let pessoas = [];
+let itens = [];
+let itemAtual = null;
+let divisaoTemp = [];
+let editandoIndex = null;
+
+function abrirMesa(){ tela1.classList.add("hidden"); tela2.classList.remove("hidden"); }
+
+function criarPessoas(){
+    let n = numPessoas.value;
+    pessoas = [];
+    for(let i=0;i<n;i++) pessoas.push({nome:"Pessoa "+(i+1), total:0, itens:[]});
+    renderPessoas(); tela2.classList.add("hidden"); tela3.classList.remove("hidden");
+}
+
+function renderPessoas(){
+    listaPessoas.innerHTML = "";
+    pessoas.forEach((p,i)=>{
+        listaPessoas.innerHTML += `<input value="${p.nome}" onchange="pessoas[${i}].nome=this.value">`;
+    });
+}
+
+function irParaConta(){ tela3.classList.add("hidden"); tela4.classList.remove("hidden"); renderItens(); }
+
+function adicionarItem(){ editandoIndex=null; nomeItem.value=""; qtdItem.value=""; precoItem.value=""; btnDelete.classList.add("hidden"); tela4.classList.add("hidden"); telaAddItem.classList.remove("hidden"); }
+
+function editarItem(i){ let item=itens[i]; editandoIndex=i; nomeItem.value=item.nome; qtdItem.value=item.qtd; precoItem.value=item.preco; btnDelete.classList.remove("hidden"); tela4.classList.add("hidden"); telaAddItem.classList.remove("hidden"); }
+
+function salvarItem(){
+    let nome=nomeItem.value, qtd=Number(qtdItem.value), preco=Number(precoItem.value);
+    if(editandoIndex!==null){ Object.assign(itens[editandoIndex],{nome,qtd,preco}); }
+    else itens.push({nome,qtd,preco,divisoes:[]});
+    voltarLista();
+}
+
+function apagarItemConfirm(){ if(confirm("Apagar?")){ itens.splice(editandoIndex,1); voltarLista(); } }
+
+function abrirDivisao(){
+    itemAtual = editandoIndex;
+    divisaoTemp = [{qtd: itens[itemAtual].qtd, pessoas: []}];
+    telaAddItem.classList.add("hidden");
+    telaDivisao.classList.remove("hidden");
+    renderDivisao();
+}
+
+function renderDivisao(){
+    let div=divisaoConteudo; div.innerHTML="";
+    let total=itens[itemAtual].qtd;
+    let usado=divisaoTemp.reduce((s,d)=>s+(d.qtd||0),0);
+    let restante=total-usado;
+
+    div.innerHTML+=`<b>Total: ${total} | Restante: ${restante}</b><hr>`;
+
+    divisaoTemp.forEach((d,i)=>{
+        div.innerHTML+=`Qtd:<input type='number' value='${d.qtd}' onchange='divisaoTemp[${i}].qtd=Number(this.value);renderDivisao()'><br>`+
+        `<b>Pessoas:</b><br>`+
+        pessoas.map((p,pi)=>`<label><input type='checkbox' ${d.pessoas.includes(pi)?"checked":""} onchange='togglePessoa(${i},${pi})'> ${p.nome}</label>`).join("<br>")+"<hr>";
+    });
+}
+
+function togglePessoa(i,p){ let arr=divisaoTemp[i].pessoas; arr.includes(p)?divisaoTemp[i].pessoas=arr.filter(x=>x!=p):arr.push(p); }
+function addDiv(){ divisaoTemp.push({qtd:0,pessoas:[]}); renderDivisao(); }
+
+function salvarDivisao(){ itens[itemAtual].divisoes=divisaoTemp; telaDivisao.classList.add("hidden"); tela4.classList.remove("hidden"); renderItens(); }
+
+function voltarLista(){ telaAddItem.classList.add("hidden"); telaFinal.classList.add("hidden"); tela4.classList.remove("hidden"); renderItens(); }
+
+function renderItens(){
+    let total=0; let html="";
+    itens.forEach((item,i)=>{
+        let val=item.qtd*item.preco; total+=val;
+        let pessoasStr = item.divisoes.flatMap(d=>d.pessoas).map(i=>pessoas[i].nome).join(", ") || "todos";
+        html+=`<div class='item'><div class='item-nome'>${item.nome}</div><div>${item.qtd}x - R$ ${val.toFixed(2)}</div><div class='item-sub'>dividido por: ${pessoasStr}</div><button class='btn-edit' onclick='editarItem(${i})'>Editar</button></div>`;
+    });
+    document.getElementById("itens").innerHTML=html;
+
+    let taxa=Number(document.getElementById("taxa").value)||0;
+    let totalFinal=total*(1+taxa/100);
+    previewTotal.innerHTML=`Total: R$ ${total.toFixed(2)} | c/ taxa: R$ ${totalFinal.toFixed(2)}`;
+}
+
+function finalizarConta(){ tela4.classList.add("hidden"); telaFinal.classList.remove("hidden"); calcular(); }
+
+function calcular(){
+    pessoas.forEach(p=>{p.total=0;p.itens=[]});
+    let total=0;
+
+    itens.forEach(item=>{
+        let totalItem=item.qtd*item.preco; total+=totalItem;
+        if(item.divisoes.length===0){
+            let porPessoa=totalItem/pessoas.length;
+            pessoas.forEach(p=>{p.total+=porPessoa;p.itens.push(`${item.nome} - R$ ${(porPessoa).toFixed(2)}`)});
+        } else {
+            item.divisoes.forEach(d=>{
+                let valor=(d.qtd/item.qtd)*totalItem;
+                let porPessoa=valor/d.pessoas.length;
+                d.pessoas.forEach(pi=>{
+                    pessoas[pi].total+=porPessoa;
+                    pessoas[pi].itens.push(`${item.nome} - R$ ${(porPessoa).toFixed(2)}`);
+                });
+            });
+        }
+    });
+
+    let taxa=Number(document.getElementById("taxa").value)||0;
+    let totalFinal=total*(1+taxa/100);
+
+    let html="<b>🍺 QUANTO DEU?</b><br><b>Resultado</b><br><br>";
+
+    pessoas.forEach(p=>{
+        let final=p.total*(1+taxa/100);
+        html+=`<b>${p.nome}: R$ ${final.toFixed(2)}</b><br>`;
+        p.itens.forEach(it=> html+=`${it}<br>`);
+        html+="<br>";
+    });
+
+    resultado.innerHTML=html;
+
+    let txt=`🍺 QUANTO DEU?\nResultado\n\n`;
+    pessoas.forEach(p=>{
+        let final=p.total*(1+taxa/100);
+        txt+=`${p.nome}: R$ ${final.toFixed(2)}\n`;
+        p.itens.forEach(it=> txt+=it+"\n");
+        txt+="\n";
+    });
+
+    window.textoFinal=txt;
+}
+
+function copiarTexto(){ navigator.clipboard.writeText(window.textoFinal || ""); alert("Copiado!"); }
+
+</script>
+
+</body>
+</html>
