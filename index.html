@@ -183,7 +183,7 @@ let n=numPessoas.value
 pessoas=[]
 
 for(let i=0;i<n;i++){
-pessoas.push({nome:"",total:0,itens:[]})
+pessoas.push({nome:"",total:0,totalItens:0,totalCouvert:0,itens:[]})
 }
 
 renderPessoas()
@@ -412,6 +412,8 @@ function calcular(){
 
 pessoas.forEach(p=>{
 p.total=0
+p.totalItens=0
+p.totalCouvert=0
 p.itens=[]
 })
 
@@ -424,7 +426,7 @@ if(item.divisoes.length===0){
 let porPessoa=totalItem/pessoas.length
 
 pessoas.forEach(p=>{
-p.total+=porPessoa
+p.totalItens+=porPessoa
 p.itens.push(`${item.nome} - R$ ${porPessoa.toFixed(2)}`)
 })
 
@@ -436,7 +438,7 @@ let valor=(d.qtd/item.qtd)*totalItem
 let porPessoa=valor/d.pessoas.length
 
 d.pessoas.forEach(pi=>{
-pessoas[pi].total+=porPessoa
+pessoas[pi].totalItens+=porPessoa
 pessoas[pi].itens.push(`${item.nome} - R$ ${porPessoa.toFixed(2)}`)
 })
 
@@ -452,7 +454,7 @@ let totalCouvert=couvert.valor*couvert.qtd
 let porPessoa=totalCouvert/couvert.pessoas.length
 
 couvert.pessoas.forEach(pi=>{
-pessoas[pi].total+=porPessoa
+pessoas[pi].totalCouvert+=porPessoa
 pessoas[pi].itens.push(`Couvert - R$ ${porPessoa.toFixed(2)}`)
 })
 }
@@ -463,7 +465,7 @@ let html="<b>🍺 QUANTO DEU?</b><br><b>Resultado</b><br><br>"
 
 pessoas.forEach(p=>{
 
-let final=(p.total)*(1+taxa/100)
+let final=(p.totalItens*(1+taxa/100))+p.totalCouvert
 
 html+=`<b>${p.nome||"Pessoa"}: R$ ${final.toFixed(2)}</b><br>`
 
@@ -478,7 +480,7 @@ let txt=`🍺 QUANTO DEU?\nResultado\n\n`
 
 pessoas.forEach(p=>{
 
-let final=(p.total)*(1+taxa/100)
+let final=(p.totalItens*(1+taxa/100))+p.totalCouvert
 
 txt+=`${p.nome||"Pessoa"}: R$ ${final.toFixed(2)}\n`
 
