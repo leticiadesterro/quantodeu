@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+<link rel="manifest" href="manifest.json">
 <meta charset="UTF-8">
 <title>QUANTO DEU?</title>
 <style>
@@ -208,6 +209,12 @@ function calcular(){
 
 function copiarTexto(){ navigator.clipboard.writeText(window.textoFinal || ""); alert("Copiado!"); }
 
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
 </script>
 
 </body>
